@@ -1,231 +1,243 @@
 
 
-# Local Development Setup 
+# Local Development with CI (local-dev-ci)
 
-This branch (local-dev) is used to run the application locally without Docker or Kubernetes. The goal is to understand how frontend, backend, and database work together.
+In the previous branch (`local-dev`), we ran the application locally to understand how frontend, backend, and database work together.
 
-
-
-
-
-## Architecture Overview
-
-This is a simple 3-tier application:
-
-**Frontend Architecture**
-
-  - Language: JavaScript
-  - Library: React.js
-  - Runtime Environment: Browser
+This branch (`local-dev-ci`) introduces **Continuous Integration (CI)** using Jenkins with security and quality checks.
 
 
-**Backend Architecture**
 
+## What we are doing in this branch
 
-- Language: JavaScript
-- Framework: Express.js
-- Runtime Environment: Node.js
+We are automating:
 
+* Code checkout from GitHub
+* Basic code validation
+* Secret scanning (GitLeaks)
+* Code quality analysis (SonarQube)
+* Security scanning (Trivy)
 
-**Database Architecture**
+Goal:
 
-- Database: MySQL
-- Backend connects directly to the database
-- Frontend NEVER connects directly to database
-
-
-Important difference:
-
-In React, you call the library. In Express, the framework calls your code (routes, middleware)
+> Validate code before moving to Docker and deployment stages
 
 ---
 
-### Important files: package.json & package-lock.json
+## Architecture (CI Flow)
 
-### package.json
-
-Defines:
-
-* Dependencies (React, Express, MySQL)
-* Scripts:
-
-  * `npm start`
-  * `npm install`
-  * `npm test`
-
-### package-lock.json
-
-* Auto-generated
-* Locks exact versions of dependencies
-* Ensures same behavior on all machines (local, CI/CD, production)
-
-
-
-
-
-## Prerequisites
-
-* Linux machine / VM / EC2
-* Node.js (version 18 or later is recommended)
-* MySQL
-* Git
-
-
-## Steps:
-
-1. Linux machine / VM / EC2
-2. Node.js 
-3. MySQL
-4. Fork and Clone Repo
-5. Configure Environment Variables
-6. Run Backend
-7. Run Frontend
-8. Access Application
-
-
-
-
-
-### Step 1. Linux machine / VM / EC2
-
-
-### Step 2: Node.js 
-
-```bash
-curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.4/install.sh | bash
+```plaintext
+Developer → GitHub → Jenkins Pipeline
+                    ↓
+          Code Checks & Scans
+      (GitLeaks, SonarQube, Trivy)
 ```
 
-```bash
-export NVM_DIR="$HOME/.nvm"
-[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
-[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"
-```
+---
+
+## Steps 
+
+1. Setup Jenkins Server
+2. Setup SonarQube Server
+3. Integrate Jenkins with SonarQube
+4. Install required Jenkins plugins
+5. Create Jenkins Pipeline
+
+
+
+### Step 1: Setup Jenkins Server
+
+**Install Java (required for Jenkins)**
 
 ```bash
-\. "$HOME/.nvm/nvm.sh"
-nvm install 25
-```
-
-Verify:
-
-```bash
-node -v
-npm -v
+sudo apt update
+sudo apt install openjdk-21-jre-headless -y
+java -version
 ```
 
 
-### Step 3: MySQL
+Install Jenkins (LTS)
+
+```bash
+sudo wget -O /etc/apt/keyrings/jenkins-keyring.asc \
+  https://pkg.jenkins.io/debian-stable/jenkins.io-2026.key
+
+echo "deb [signed-by=/etc/apt/keyrings/jenkins-keyring.asc]" \
+  https://pkg.jenkins.io/debian-stable binary/ | sudo tee \
+  /etc/apt/sources.list.d/jenkins.list > /dev/null
+
+sudo apt update
+sudo apt install jenkins
+```
+
+
+Access Jenkins
+
+```plaintext
+http://<public-ip>:8080
+```
+
+Get initial password:
+
+```bash
+sudo cat /var/lib/jenkins/secrets/initialAdminPassword
+```
+
+
+**Install Security Tools**
+
+GitLeaks (Secret Scanning)
+
+```bash
+sudo apt install gitleaks
+```
+
+Trivy (Security Scanner)
+
+```bash
+sudo apt-get install wget gnupg
+wget -qO - https://aquasecurity.github.io/trivy-repo/deb/public.key | gpg --dearmor | sudo tee /usr/share/keyrings/trivy.gpg > /dev/null
+echo "deb [signed-by=/usr/share/keyrings/trivy.gpg] https://aquasecurity.github.io/trivy-repo/deb generic main" | sudo tee -a /etc/apt/sources.list.d/trivy.list
+sudo apt-get update
+sudo apt-get install trivy
+```
+
+
+
+### Step 2: Setup SonarQube Server
+
+```bash
+sudo apt update
+sudo apt install docker.io -y
+sudo usermod -aG docker $USER
+newgrp docker
+```
+
+Run SonarQube:
+
+```bash
+docker run -d --name sonar -p 9000:9000 sonarqube:lts-community
+```
+
+Access:
+
+```plaintext
+http://<public-ip>:9000
+```
+
+
+
+### Step 3: Integrate Jenkins with SonarQube
+
+* Configure SonarQube server in Jenkins
+* Generate token in SonarQube
+* Add token in Jenkins credentials
+* Install SonarQube Scanner plugin
+* Configure webhook (optional but recommended)
+
+
+
+### Step 4: Jenkins Plugins
 
 Install:
 
-```bash
-sudo apt install mysql-server -y
-```
-
-Login:
-
-```bash
-sudo mysql
-```
-
-Set password:
-
-```sql
-ALTER USER 'root'@'localhost' IDENTIFIED WITH mysql_native_password BY 'Aditya';
-FLUSH PRIVILEGES;
-EXIT;
-```
-
-Login again:
-
-```bash
-sudo mysql -u root -p
-```
-
-Create database and table:
-
-```sql
-CREATE DATABASE IF NOT EXISTS crud_app;
-USE crud_app;
-
-CREATE TABLE IF NOT EXISTS users (
-  id INT AUTO_INCREMENT PRIMARY KEY,
-  name VARCHAR(255) NOT NULL,
-  email VARCHAR(255) NOT NULL UNIQUE,
-  password VARCHAR(255) NOT NULL,
-  role ENUM('admin', 'viewer') NOT NULL DEFAULT 'viewer',
-  is_active TINYINT(1) DEFAULT 1,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-```
-
-Exit:
-
-```bash
-exit
-```
-
-
-### Step 4: Fork and Clone Repo
-
-```bash
-git clone https://github.com/bilalamjad-devops/3-Tier-DevSecOps-Mega-Project
-cd 3-Tier-DevSecOps-Mega-Project
-git checkout local-dev
-```
+* Pipeline Stage View
+* NodeJS Plugin
+* SonarQube Scanner Plugin
 
 
 
-### Step 5: Configure Environment Variables
+### Step 5: Jenkins Pipeline
 
-**Frontend (.env)**
+Create new pipeline job:
 
-```bash
-cd client
-vi .env
-```
+* Click **New Item**
+* Select **Pipeline**
+* Configure:
+  * Max builds to keep: 3
 
-Update:
+Pipeline Script
 
-```
-REACT_APP_API=http://<your-public-ip>:5000
-```
+```groovy
+pipeline {
+    agent any
+    
+    tools {
+        nodejs 'nodejs23'
+    }
 
-This connects frontend to backend.
+    environment {
+        SCANNER_HOME = tool 'sonar-scanner'
+    }
 
+    stages {
 
-### Step 6: Run Backend
+        stage('Git Checkout') {
+            steps {
+                git branch: 'dev', url: 'https://github.com/jaiswaladi246/3-Tier-DevSecOps-Mega-Project.git'
+            }
+        }
 
-```bash
-cd api
-npm install
-npm start
-```
+        stage('Frontend Compilation') {
+            steps {
+                dir('client') {
+                    sh 'find . -name "*.js" -exec node --check {} +'
+                }
+            }
+        }
 
-* Installs dependencies → `node_modules/`
-* Starts backend server
+        stage('Backend Compilation') {
+            steps {
+                dir('api') {
+                    sh 'find . -name "*.js" -exec node --check {} +'
+                }
+            }
+        }
 
+        stage('GitLeaks Scan') {
+            steps {
+                sh 'gitleaks detect --source ./client --exit-code 1'
+                sh 'gitleaks detect --source ./api --exit-code 1'
+            }
+        }
 
-### Step 7: Run Frontend
+        stage('SonarQube Analysis') {
+            steps {
+                withSonarQubeEnv('sonar') {
+                    sh '''
+                    $SCANNER_HOME/bin/sonar-scanner \
+                    -Dsonar.projectName=NodeJS-Project \
+                    -Dsonar.projectKey=NodeJS-Project
+                    '''
+                }
+            }
+        }
 
-```bash
-cd client
-npm install
-npm start
+        stage('Quality Gate Check') {
+            steps {
+                timeout(time: 1, unit: 'HOURS') {
+                    waitForQualityGate abortPipeline: false, credentialsId: 'sonar-token'
+                }
+            }
+        }
+
+        stage('Trivy FS Scan') {
+            steps {
+                sh 'trivy fs --format table -o fs-report.html .'
+            }
+        }
+    }
+}
 ```
 
 
 
-### Step 8: Access Application
 
-Open browser:
+In the next branch (`docker-build-deploy`), we:
 
-```
-http://<your-public-ip>:3000
-```
+* Containerize the application using Docker
+* Extend this CI into full CI/CD pipeline
+* Prepare for Kubernetes deployment
 
+---
 
-
-In the next branch (`docker-build-deploy`), this same setup is containerized using Docker and automated using a CI/CD pipeline.
-
-Commit Date: 21-April-2026
