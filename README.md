@@ -22,7 +22,7 @@ Goal:
 
 > Validate code before moving to Docker and deployment stages
 
----
+
 
 ## Architecture (CI Flow)
 
@@ -33,7 +33,7 @@ Developer → GitHub → Jenkins Pipeline
       (GitLeaks, SonarQube, Trivy)
 ```
 
----
+
 
 ## Steps 
 
