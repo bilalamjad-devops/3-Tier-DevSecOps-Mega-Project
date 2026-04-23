@@ -35,17 +35,13 @@ Developer → GitHub → Jenkins Pipeline
             ↓  
      Deploy using Docker Compose
 ```
-Note:
 
-Please Replace your:
-— GitHub username
-— DockerHub username
 
-Step 1: Jenkins Server 
+### Step 1: Jenkins Server 
 
 
 
-Install Java:
+**Install Java (for Jenkins):**
 
 ```bash
 sudo apt update
@@ -77,7 +73,7 @@ sudo cat /var/lib/jenkins/secrets/initialAdminPassword
 ```
 
 
-Install GitLeaks and Trivy
+**Install GitLeaks and Trivy**
 
 ```bash
 sudo apt install gitleaks
@@ -92,7 +88,7 @@ sudo apt-get install trivy
 ```
 
 
-Install Offical Docker:
+**Install Offical Docker:**
 
 
 1. Set up Docker's apt repository
@@ -124,7 +120,7 @@ sudo apt update
 sudo apt install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
 ```
 
-Install Docker Compose:
+**Install Docker Compose:**
 
 
 
@@ -141,7 +137,7 @@ chmod +x /usr/local/bin/docker-compose
 ```
 
 
-Step 2: SonarQube Server
+### Step 2: SonarQube Server
 
 
 ```bash
@@ -154,7 +150,7 @@ docker run -d --name sonar -p 9000:9000 sonarqube:lts-community
 ```
 
 
-Step 3: Integration: Jenkins Server and SonarQube Server
+### Step 3: Integration: Jenkins Server and SonarQube Server
 
 Configure SonarQube server in Jenkins
 
@@ -168,21 +164,18 @@ Configure webhook (optional but recommended)
 
 
 
-Step 4: Jenkins: Plugins
+### Step 4: Jenkins: Plugins
 
 
-Pipeline: Stage View 
-
-NodeJS Plugin 
-
-Docker Pipeline
-
-Docker Compose Build Step
+- Pipeline: Stage View 
+- NodeJS Plugin 
+- Docker Pipeline
+- Docker Compose Build Step
 
 
 
 
-Step 5: Credentials (Jenkins)
+### Step 5: Credentials (Jenkins)
 
 Add DockerHub credentials:
 
@@ -192,13 +185,15 @@ Add DockerHub credentials:
 
 
 
-Step 6. Jenkins: Pipeline
+### Step 6. Jenkins: Pipeline
 
 Click New Item 
+
 Select Pipeline 
 OK 
 
 Max # of build to keep: 3 
+
 Paste script
 
 ```bash
@@ -315,7 +310,6 @@ Click Apply and Save
 
 Click Build Now
 
-## Next Step
 
 In the next branch (`deploy-to-dev-k8`), we extend this pipeline to Kubernetes (EKS) for production-style deployment.
 
